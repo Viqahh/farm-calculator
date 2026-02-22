@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Farm Weight Calculator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; max-width: 720px; }
+    label { display:block; margin-top: 12px; font-weight: 600; }
+    input, button { padding: 10px; font-size: 16px; }
+    input { width: 100%; box-sizing: border-box; }
+    .row { display:flex; gap: 10px; align-items: end; }
+    .row > div { flex: 1; }
+    .box { border: 1px solid #ddd; padding: 16px; border-radius: 10px; margin-top: 16px; }
+    ul { margin: 8px 0 0; padding-left: 18px; }
+    .result { font-size: 18px; font-weight: 700; margin-top: 10px; }
+    .muted { color:#666; font-size: 14px; }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Farm Weight Calculator (Chicken)</h1>
+  <p class="muted">Input info + berat (per 10 ekor). Sistem akan hitung total berat otomatis.</p>
+
+  <div class="box">
+    <label>Tanggal</label>
+    <input id="date" type="date" />
+
+    <label>Nama Peternak</label>
+    <input id="farmerName" type="text" placeholder="Contoh: Pak Budi" />
+
+    <label>Nama Pembeli</label>
+    <input id="buyerName" type="text" placeholder="Contoh: CV Maju Jaya" />
+
+    <label>License</label>
+    <input id="license" type="text" placeholder="Contoh: L-12345" />
+  </div>
+
+  <div class="box">
+    <h2>Berat Timbangan (per 10 ekor)</h2>
+
+    <div class="row">
+      <div>
+        <label>Tambah berat per 10 ekor (kg)</label>
+        <input id="weightInput" type="number" step="0.1" placeholder="Contoh: 16.8" />
+      </div>
+      <div style="flex:0 0 160px;">
+        <button id="addWeightBtn" type="button" style="width:100%;">+ Add</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top: 8px;">
+      <div>
+        <label>Total jumlah ekor</label>
+        <input id="totalPieces" type="number" step="1" placeholder="Contoh: 300" />
+      </div>
+      <div style="flex:0 0 160px;">
+        <button id="calcBtn" type="button" style="width:100%;">Calculate</button>
+      </div>
+    </div>
+
+    <div style="margin-top: 12px;">
+      <strong>List timbangan:</strong>
+      <ul id="weightsList"></ul>
+      <p id="emptyMsg" class="muted">Belum ada data timbangan.</p>
+      <button id="clearBtn" type="button" style="margin-top:10px;">Clear Timbangan</button>
+    </div>
+
+    <div class="result" id="result"></div>
+    <div class="muted" id="detail"></div>
+  </div>
+
+  <script>
+    const weights = [];
+
+    const weightInput = document.getElementById("weightInput");
+    const addWeightBtn = document.getElementById("addWeightBtn");
+    const weightsList = document.getElementById("weightsList");
+    const emptyMsg = document.getElementById("emptyMsg");
+
+    const totalPieces = document.getElementById("totalPieces");
+    const calcBtn = document.getElementById("calcBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    const result = document.getElementById("result");
+    const detail = document.getElementById("detail");
+
+    function renderWeights() {
+      weightsList.innerHTML = "";
+      if (weights.length === 0) {
+        emptyMsg.style.display = "block";
+        return;
+      }
+      emptyMsg.style.display = "none";
+      weights.forEach((w, idx) => {
+        const li = document.createElement("li");
+        li.textContent = `${w.toFixed(1)} kg (per 10 ekor)`;
+        weightsList.appendChild(li);
+      });
+    }
+
+    addWeightBtn.addEventListener("click", () => {
+      const val = parseFloat(weightInput.value);
+      if (Number.isNaN(val) || val <= 0) {
+        alert("Masukkan berat yang valid (contoh 16.8).");
+        return;
+      }
+      weights.push(val);
+      weightInput.value = "";
+      renderWeights();
+      result.textContent = "";
+      detail.textContent = "";
+    });
+
+    clearBtn.addEventListener("click", () => {
+      weights.length = 0;
+      renderWeights();
+      result.textContent = "";
+      detail.textContent = "";
+    });
+
+    calcBtn.addEventListener("click", () => {
+      const pieces = parseInt(totalPieces.value, 10);
+
+      if (weights.length === 0) {
+        alert("Tambahkan minimal 1 data timbangan (per 10 ekor).");
+        return;
+      }
+      if (Number.isNaN(pieces) || pieces <= 0) {
+        alert("Masukkan total ekor yang valid (contoh 300).");
+        return;
+      }
+      if (pieces % 10 !== 0) {
+        alert("Karena timbang per 10 ekor, total ekor sebaiknya kelipatan 10.");
+        return;
+      }
+
+      // average weight per 10
+      let sum = 0;
+      for (let i = 0; i < weights.length; i++) sum += weights[i];
+      const avgPer10 = sum / weights.length;
+
+      const batches = pieces / 10;
+      const totalWeight = batches * avgPer10;
+
+      result.textContent = `Total berat ≈ ${totalWeight.toFixed(2)} kg`;
+      detail.textContent =
+        `Rata-rata per 10 ekor = ${avgPer10.toFixed(2)} kg | Jumlah batch (10 ekor) = ${batches}`;
+    });
+
+    renderWeights();
+  </script>
+</body>
+</html>
