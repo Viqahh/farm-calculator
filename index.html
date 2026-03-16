@@ -7,8 +7,8 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 24px; max-width: 720px; }
     label { display:block; margin-top: 12px; font-weight: 600; }
-    input, button { padding: 10px; font-size: 16px; }
-    input { width: 100%; box-sizing: border-box; }
+    input, select, button, textarea { padding: 10px; font-size: 16px; }
+    input, select, textarea { width: 100%; box-sizing: border-box; }
     .row { display:flex; gap: 10px; align-items: end; }
     .row > div { flex: 1; }
     .box { border: 1px solid #ddd; padding: 16px; border-radius: 10px; margin-top: 16px; }
@@ -16,11 +16,12 @@
     .result { font-size: 18px; font-weight: 700; margin-top: 10px; }
     .muted { color:#666; font-size: 14px; }
     button { cursor: pointer; }
+    .btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
   <h1>Farm Weight Calculator (Chicken)</h1>
-  <p class="muted">Input info + berat (per 10 ekor). Sistem akan hitung total berat otomatis.</p>
+  <p class="muted">Input info + berat (per 10 ekor). Sistem akan hitung total berat otomatis lalu bisa disimpan ke Google Sheet.</p>
 
   <div class="box">
     <label>Tanggal</label>
@@ -29,11 +30,18 @@
     <label>Nama Peternak</label>
     <input id="farmerName" type="text" placeholder="Contoh: Pak Budi" />
 
-    <label>Nama Pembeli</label>
+    <label>Nama Bakul / Pembeli</label>
     <input id="buyerName" type="text" placeholder="Contoh: CV Maju Jaya" />
 
     <label>License</label>
     <input id="license" type="text" placeholder="Contoh: L-12345" />
+
+    <label>Daerah</label>
+    <select id="daerah">
+      <option value="">-- Pilih Daerah --</option>
+      <option value="Kediri">Kediri</option>
+      <option value="Makassar">Makassar</option>
+    </select>
   </div>
 
   <div class="box">
@@ -63,7 +71,11 @@
       <strong>List timbangan:</strong>
       <ul id="weightsList"></ul>
       <p id="emptyMsg" class="muted">Belum ada data timbangan.</p>
-      <button id="clearBtn" type="button" style="margin-top:10px;">Clear Timbangan</button>
+    </div>
+
+    <div class="btn-row">
+      <button id="clearBtn" type="button">Clear Timbangan</button>
+      <button id="submitBtn" type="button">Submit Data</button>
     </div>
 
     <div class="result" id="result"></div>
@@ -71,7 +83,13 @@
   </div>
 
   <script>
+    // GANTI DENGAN WEB APP URL APPS SCRIPT KAMU
+    const scriptURL = "https://script.google.com/macros/s/AKfycbyJ7J-T6AOI6AEb2uPVpGccu1EUz56Br5zpdQieBcc323kDfOlTYasy-lZpSuGQGtbC/exec";
+
     const weights = [];
+    let calculatedAvgPer10 = null;
+    let calculatedTotalWeight = null;
+    let calculatedBatches = null;
 
     const weightInput = document.getElementById("weightInput");
     const addWeightBtn = document.getElementById("addWeightBtn");
@@ -81,42 +99,60 @@
     const totalPieces = document.getElementById("totalPieces");
     const calcBtn = document.getElementById("calcBtn");
     const clearBtn = document.getElementById("clearBtn");
+    const submitBtn = document.getElementById("submitBtn");
 
     const result = document.getElementById("result");
     const detail = document.getElementById("detail");
 
+    const dateInput = document.getElementById("date");
+    const farmerNameInput = document.getElementById("farmerName");
+    const buyerNameInput = document.getElementById("buyerName");
+    const licenseInput = document.getElementById("license");
+    const daerahInput = document.getElementById("daerah");
+
     function renderWeights() {
       weightsList.innerHTML = "";
+
       if (weights.length === 0) {
         emptyMsg.style.display = "block";
         return;
       }
+
       emptyMsg.style.display = "none";
-      weights.forEach((w, idx) => {
+
+      for (let i = 0; i < weights.length; i++) {
         const li = document.createElement("li");
-        li.textContent = `${w.toFixed(1)} kg (per 10 ekor)`;
+        li.textContent = `${weights[i].toFixed(1)} kg (per 10 ekor)`;
         weightsList.appendChild(li);
-      });
+      }
+    }
+
+    function resetCalculationResult() {
+      calculatedAvgPer10 = null;
+      calculatedTotalWeight = null;
+      calculatedBatches = null;
+      result.textContent = "";
+      detail.textContent = "";
     }
 
     addWeightBtn.addEventListener("click", () => {
       const val = parseFloat(weightInput.value);
+
       if (Number.isNaN(val) || val <= 0) {
         alert("Masukkan berat yang valid (contoh 16.8).");
         return;
       }
+
       weights.push(val);
       weightInput.value = "";
       renderWeights();
-      result.textContent = "";
-      detail.textContent = "";
+      resetCalculationResult();
     });
 
     clearBtn.addEventListener("click", () => {
       weights.length = 0;
       renderWeights();
-      result.textContent = "";
-      detail.textContent = "";
+      resetCalculationResult();
     });
 
     calcBtn.addEventListener("click", () => {
@@ -126,26 +162,112 @@
         alert("Tambahkan minimal 1 data timbangan (per 10 ekor).");
         return;
       }
+
       if (Number.isNaN(pieces) || pieces <= 0) {
-        alert("Masukkan total ekor yang valid (contoh 300).");
+        alert("Masukkan total ekor yang valid (contoh: 300).");
         return;
       }
+
       if (pieces % 10 !== 0) {
-        alert("Karena timbang per 10 ekor, total ekor sebaiknya kelipatan 10.");
+        alert("Karena timbang per 10 ekor, total ekor harus kelipatan 10.");
         return;
       }
 
-      // average weight per 10
       let sum = 0;
-      for (let i = 0; i < weights.length; i++) sum += weights[i];
-      const avgPer10 = sum / weights.length;
+      for (let i = 0; i < weights.length; i++) {
+        sum += weights[i];
+      }
 
-      const batches = pieces / 10;
-      const totalWeight = batches * avgPer10;
+      calculatedAvgPer10 = sum / weights.length;
+      calculatedBatches = pieces / 10;
+      calculatedTotalWeight = calculatedBatches * calculatedAvgPer10;
 
-      result.textContent = `Total berat ≈ ${totalWeight.toFixed(2)} kg`;
+      result.textContent = `Total berat ≈ ${calculatedTotalWeight.toFixed(2)} kg`;
       detail.textContent =
-        `Rata-rata per 10 ekor = ${avgPer10.toFixed(2)} kg | Jumlah batch (10 ekor) = ${batches}`;
+        `Rata-rata per 10 ekor = ${calculatedAvgPer10.toFixed(2)} kg | Jumlah batch (10 ekor) = ${calculatedBatches}`;
+    });
+
+    submitBtn.addEventListener("click", async () => {
+      const tanggal = dateInput.value.trim();
+      const namaPeternak = farmerNameInput.value.trim();
+      const namaBakul = buyerNameInput.value.trim();
+      const license = licenseInput.value.trim();
+      const daerah = daerahInput.value;
+      const totalAyam = parseInt(totalPieces.value, 10);
+
+      if (!tanggal || !namaPeternak || !namaBakul || !license || !daerah) {
+        alert("Lengkapi semua data: tanggal, nama peternak, nama bakul, license, dan daerah.");
+        return;
+      }
+
+      if (weights.length === 0) {
+        alert("Tambahkan data berat terlebih dahulu.");
+        return;
+      }
+
+      if (Number.isNaN(totalAyam) || totalAyam <= 0) {
+        alert("Masukkan total ayam yang valid.");
+        return;
+      }
+
+      if (totalAyam % 10 !== 0) {
+        alert("Total ayam harus kelipatan 10.");
+        return;
+      }
+
+      if (calculatedAvgPer10 === null || calculatedTotalWeight === null) {
+        alert("Klik Calculate dulu sebelum submit.");
+        return;
+      }
+
+      const data = {
+        tanggal: tanggal,
+        namaPeternak: namaPeternak,
+        namaBakul: namaBakul,
+        license: license,
+        daerah: daerah,
+        beratList: weights.join(", "),
+        rataRata: calculatedAvgPer10.toFixed(2),
+        totalAyam: totalAyam,
+        totalBerat: calculatedTotalWeight.toFixed(2)
+      };
+
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Submitting...";
+
+        const response = await fetch(scriptURL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify(data)
+        });
+
+        const resultText = await response.text();
+        console.log("Response:", resultText);
+
+        alert("Data berhasil disimpan ke Google Sheet!");
+
+        // reset form
+        dateInput.value = "";
+        farmerNameInput.value = "";
+        buyerNameInput.value = "";
+        licenseInput.value = "";
+        daerahInput.value = "";
+        totalPieces.value = "";
+        weightInput.value = "";
+        weights.length = 0;
+        renderWeights();
+        resetCalculationResult();
+
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Gagal submit data. Cek Web App URL atau deploy Apps Script lagi.");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Data";
+      }
     });
 
     renderWeights();
