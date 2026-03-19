@@ -318,12 +318,12 @@
       }
     });
 
-   downloadPdfBtn.addEventListener("click", () => {
+   downloadPdfBtn.addEventListener("click", async () => {
   const validData = validateMainInputs();
   if (!validData) return;
 
   try {
-    await fetch(scriptURL, {
+    const response = await fetch(scriptURL, {
       method: "POST",
       headers: {
         "Content-Type": "text/plain;charset=utf-8"
@@ -337,6 +337,9 @@
         daerah: validData.daerah
       })
     });
+
+    const result = await response.text();
+    console.log("Download status update:", result);
   } catch (error) {
     console.error("Gagal update status download:", error);
   }
@@ -358,28 +361,23 @@
           margin: 40px;
           color: #000;
         }
-
         h1 {
           text-align: center;
           margin-bottom: 30px;
         }
-
         .section {
           margin-bottom: 18px;
         }
-
         p {
           margin: 8px 0;
           font-size: 18px;
           line-height: 1.5;
         }
-
         ul {
           margin-top: 8px;
           padding-left: 28px;
           font-size: 18px;
         }
-
         li {
           margin-bottom: 4px;
         }
@@ -398,9 +396,7 @@
 
       <div class="section">
         <p><strong>List Timbangan (per 10 ekor):</strong></p>
-        <ul>
-          ${weightItems}
-        </ul>
+        <ul>${weightItems}</ul>
       </div>
 
       <div class="section">
@@ -413,11 +409,9 @@
   `;
 
   const printWindow = window.open("", "_blank", "width=900,height=700");
-
   printWindow.document.open();
   printWindow.document.write(reportHtml);
   printWindow.document.close();
-
   printWindow.focus();
 
   setTimeout(() => {
