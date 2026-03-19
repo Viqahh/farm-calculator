@@ -86,29 +86,6 @@
     <div class="muted" id="detail"></div>
   </div>
 
-  <div id="pdfContent">
-    <h1 class="report-title">Farm Weight Report</h1>
-
-    <div class="report-section">
-      <p><strong>Tanggal:</strong> <span id="pdfDate"></span></p>
-      <p><strong>Nama Peternak:</strong> <span id="pdfFarmer"></span></p>
-      <p><strong>Nama Bakul:</strong> <span id="pdfBuyer"></span></p>
-      <p><strong>License:</strong> <span id="pdfLicense"></span></p>
-      <p><strong>Daerah:</strong> <span id="pdfDaerah"></span></p>
-    </div>
-
-    <div class="report-section">
-      <p><strong>List Timbangan (per 10 ekor):</strong></p>
-      <ul id="pdfWeightsList" class="report-list"></ul>
-    </div>
-
-    <div class="report-section">
-      <p><strong>Rata-rata per 10 ekor:</strong> <span id="pdfAvg"></span></p>
-      <p><strong>Total Ayam:</strong> <span id="pdfTotalAyam"></span></p>
-      <p><strong>Total Berat:</strong> <span id="pdfTotalBerat"></span></p>
-    </div>
-  </div>
-
   <script>
     const scriptURL = "https://script.google.com/macros/s/AKfycbxlZxyYjOohiPRmnEJSY14vyY4ym90LutPIj-5WoM3N0TUa5EU5iE3VZvwC2qP2WtK_/exec";
 
@@ -116,6 +93,9 @@
     let calculatedAvgPer10 = null;
     let calculatedTotalWeight = null;
     let calculatedBatches = null;
+
+    // key untuk menghubungkan submit row dengan update download status
+    let submissionKey = null;
 
     const weightInput = document.getElementById("weightInput");
     const addWeightBtn = document.getElementById("addWeightBtn");
@@ -154,7 +134,7 @@
       }
     }
 
-   function resetCalculationResult() {
+    function resetCalculationResult() {
       calculatedAvgPer10 = null;
       calculatedTotalWeight = null;
       calculatedBatches = null;
@@ -205,26 +185,6 @@
       };
     }
 
-    function fillPdfContent(data) {
-      document.getElementById("pdfDate").textContent = data.tanggal;
-      document.getElementById("pdfFarmer").textContent = data.namaPeternak;
-      document.getElementById("pdfBuyer").textContent = data.namaBakul;
-      document.getElementById("pdfLicense").textContent = data.license;
-      document.getElementById("pdfDaerah").textContent = data.daerah;
-      document.getElementById("pdfAvg").textContent = `${calculatedAvgPer10.toFixed(2)} kg`;
-      document.getElementById("pdfTotalAyam").textContent = data.totalAyam;
-      document.getElementById("pdfTotalBerat").textContent = `${calculatedTotalWeight.toFixed(2)} kg`;
-
-      const pdfWeightsList = document.getElementById("pdfWeightsList");
-      pdfWeightsList.innerHTML = "";
-
-      for (let i = 0; i < weights.length; i++) {
-        const li = document.createElement("li");
-        li.textContent = `${weights[i].toFixed(1)} kg`;
-        pdfWeightsList.appendChild(li);
-      }
-    }
-
     addWeightBtn.addEventListener("click", () => {
       const val = parseFloat(weightInput.value);
 
@@ -244,6 +204,7 @@
       weightInput.value = "";
       renderWeights();
       resetCalculationResult();
+      submissionKey = null;
     });
 
     calcBtn.addEventListener("click", () => {
@@ -282,7 +243,11 @@
       const validData = validateMainInputs();
       if (!validData) return;
 
+      const submitKey = `${validData.tanggal}|${validData.namaPeternak}|${validData.namaBakul}|${validData.license}|${Date.now()}`;
+
       const data = {
+        type: "submit",
+        submissionKey: submitKey,
         tanggal: validData.tanggal,
         namaPeternak: validData.namaPeternak,
         namaBakul: validData.namaBakul,
@@ -291,7 +256,8 @@
         beratList: weights.join(", "),
         rataRata: calculatedAvgPer10.toFixed(2),
         totalAyam: validData.totalAyam,
-        totalBerat: calculatedTotalWeight.toFixed(2)
+        totalBerat: calculatedTotalWeight.toFixed(2),
+        downloadStatus: "Belum"
       };
 
       try {
@@ -307,8 +273,9 @@
         });
 
         await response.text();
-        alert("Data berhasil disimpan ke Google Sheet!");
+        submissionKey = submitKey;
 
+        alert("Data berhasil disimpan ke Google Sheet!");
       } catch (error) {
         console.error(error);
         alert("Gagal submit data. Cek Web App URL atau deploy Apps Script lagi.");
@@ -318,114 +285,115 @@
       }
     });
 
-   downloadPdfBtn.addEventListener("click", async () => {
-  const validData = validateMainInputs();
-  if (!validData) return;
+    downloadPdfBtn.addEventListener("click", async () => {
+      const validData = validateMainInputs();
+      if (!validData) return;
 
-  // buka window dulu supaya tidak dianggap popup liar
-  const printWindow = window.open("", "_blank", "width=900,height=700");
+      if (!submissionKey) {
+        alert("Submit data dulu sebelum download PDF, supaya status bisa diupdate.");
+        return;
+      }
 
-  if (!printWindow) {
-    alert("Popup diblokir browser. Allow pop-ups untuk site ini dulu.");
-    return;
-  }
+      const printWindow = window.open("", "_blank", "width=900,height=700");
 
-  try {
-    const response = await fetch(scriptURL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
-      body: JSON.stringify({
-        type: "download",
-        tanggal: validData.tanggal,
-        namaPeternak: validData.namaPeternak,
-        namaBakul: validData.namaBakul,
-        license: validData.license,
-        daerah: validData.daerah
-      })
+      if (!printWindow) {
+        alert("Popup diblokir browser. Allow pop-ups untuk site ini dulu.");
+        return;
+      }
+
+      try {
+        const response = await fetch(scriptURL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify({
+            type: "download",
+            submissionKey: submissionKey,
+            downloadStatus: "Sudah Download"
+          })
+        });
+
+        const resultText = await response.text();
+        console.log("Download status update:", resultText);
+      } catch (error) {
+        console.error("Gagal update status download:", error);
+      }
+
+      let weightItems = "";
+      for (let i = 0; i < weights.length; i++) {
+        weightItems += `<li>${weights[i].toFixed(1)} kg</li>`;
+      }
+
+      const reportHtml = `
+        <!doctype html>
+        <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Farm Weight Report</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 40px;
+              color: #000;
+            }
+            h1 {
+              text-align: center;
+              margin-bottom: 30px;
+            }
+            .section {
+              margin-bottom: 18px;
+            }
+            p {
+              margin: 8px 0;
+              font-size: 18px;
+              line-height: 1.5;
+            }
+            ul {
+              margin-top: 8px;
+              padding-left: 28px;
+              font-size: 18px;
+            }
+            li {
+              margin-bottom: 4px;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Farm Weight Report</h1>
+
+          <div class="section">
+            <p><strong>Tanggal:</strong> ${validData.tanggal}</p>
+            <p><strong>Nama Peternak:</strong> ${validData.namaPeternak}</p>
+            <p><strong>Nama Bakul:</strong> ${validData.namaBakul}</p>
+            <p><strong>License:</strong> ${validData.license}</p>
+            <p><strong>Daerah:</strong> ${validData.daerah}</p>
+          </div>
+
+          <div class="section">
+            <p><strong>List Timbangan (per 10 ekor):</strong></p>
+            <ul>${weightItems}</ul>
+          </div>
+
+          <div class="section">
+            <p><strong>Rata-rata per 10 ekor:</strong> ${calculatedAvgPer10.toFixed(2)} kg</p>
+            <p><strong>Total Ayam:</strong> ${validData.totalAyam}</p>
+            <p><strong>Total Berat:</strong> ${calculatedTotalWeight.toFixed(2)} kg</p>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(reportHtml);
+      printWindow.document.close();
+      printWindow.focus();
+
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
     });
 
-    const resultText = await response.text();
-    console.log("Download status update:", resultText);
-  } catch (error) {
-    console.error("Gagal update status download:", error);
-  }
-
-  let weightItems = "";
-  for (let i = 0; i < weights.length; i++) {
-    weightItems += `<li>${weights[i].toFixed(1)} kg</li>`;
-  }
-
-  const reportHtml = `
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8" />
-      <title>Farm Weight Report</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          margin: 40px;
-          color: #000;
-        }
-        h1 {
-          text-align: center;
-          margin-bottom: 30px;
-        }
-        .section {
-          margin-bottom: 18px;
-        }
-        p {
-          margin: 8px 0;
-          font-size: 18px;
-          line-height: 1.5;
-        }
-        ul {
-          margin-top: 8px;
-          padding-left: 28px;
-          font-size: 18px;
-        }
-        li {
-          margin-bottom: 4px;
-        }
-      </style>
-    </head>
-    <body>
-      <h1>Farm Weight Report</h1>
-
-      <div class="section">
-        <p><strong>Tanggal:</strong> ${validData.tanggal}</p>
-        <p><strong>Nama Peternak:</strong> ${validData.namaPeternak}</p>
-        <p><strong>Nama Bakul:</strong> ${validData.namaBakul}</p>
-        <p><strong>License:</strong> ${validData.license}</p>
-        <p><strong>Daerah:</strong> ${validData.daerah}</p>
-      </div>
-
-      <div class="section">
-        <p><strong>List Timbangan (per 10 ekor):</strong></p>
-        <ul>${weightItems}</ul>
-      </div>
-
-      <div class="section">
-        <p><strong>Rata-rata per 10 ekor:</strong> ${calculatedAvgPer10.toFixed(2)} kg</p>
-        <p><strong>Total Ayam:</strong> ${validData.totalAyam}</p>
-        <p><strong>Total Berat:</strong> ${calculatedTotalWeight.toFixed(2)} kg</p>
-      </div>
-    </body>
-    </html>
-  `;
-
-  printWindow.document.open();
-  printWindow.document.write(reportHtml);
-  printWindow.document.close();
-  printWindow.focus();
-
-  setTimeout(() => {
-    printWindow.print();
-  }, 500);
-});
-    
     renderWeights();
   </script>
 </body>
