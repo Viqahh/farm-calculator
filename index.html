@@ -21,7 +21,7 @@
 </head>
 <body>
   <h1>Farm Weight Calculator (Chicken)</h1>
-  <p class="muted">Input info + berat (per 10 ekor). Sistem akan hitung total berat otomatis lalu bisa disimpan ke Google Sheet.</p>
+  <p class="muted">Input info + berat (per 10 ekor).</p>
 
   <div class="box">
     <label>Tanggal</label>
@@ -34,7 +34,7 @@
     <input id="buyerName" type="text" placeholder="Contoh: CV Maju Jaya" />
 
     <label>License</label>
-    <input id="license" type="text" placeholder="Contoh: L-12345" />
+    <input id="license" type="text" placeholder="Contoh: B1234KLJ" />
 
     <label>Daerah</label>
     <select id="daerah">
@@ -79,14 +79,37 @@
     <div class="btn-row">
       <button id="clearBtn" type="button">Clear Timbangan</button>
       <button id="submitBtn" type="button">Submit Data</button>
+      <button id="downloadPdfBtn" type="button">Download PDF</button>
     </div>
 
     <div class="result" id="result"></div>
     <div class="muted" id="detail"></div>
   </div>
 
+  <div id="pdfContent">
+    <h1 class="report-title">Farm Weight Report</h1>
+
+    <div class="report-section">
+      <p><strong>Tanggal:</strong> <span id="pdfDate"></span></p>
+      <p><strong>Nama Peternak:</strong> <span id="pdfFarmer"></span></p>
+      <p><strong>Nama Bakul:</strong> <span id="pdfBuyer"></span></p>
+      <p><strong>License:</strong> <span id="pdfLicense"></span></p>
+      <p><strong>Daerah:</strong> <span id="pdfDaerah"></span></p>
+    </div>
+
+    <div class="report-section">
+      <p><strong>List Timbangan (per 10 ekor):</strong></p>
+      <ul id="pdfWeightsList" class="report-list"></ul>
+    </div>
+
+    <div class="report-section">
+      <p><strong>Rata-rata per 10 ekor:</strong> <span id="pdfAvg"></span></p>
+      <p><strong>Total Ayam:</strong> <span id="pdfTotalAyam"></span></p>
+      <p><strong>Total Berat:</strong> <span id="pdfTotalBerat"></span></p>
+    </div>
+  </div>
+
   <script>
-    // GANTI DENGAN WEB APP URL APPS SCRIPT KAMU
     const scriptURL = "https://script.google.com/macros/s/AKfycbyJ7J-T6AOI6AEb2uPVpGccu1EUz56Br5zpdQieBcc323kDfOlTYasy-lZpSuGQGtbC/exec";
 
     const weights = [];
@@ -103,6 +126,7 @@
     const calcBtn = document.getElementById("calcBtn");
     const clearBtn = document.getElementById("clearBtn");
     const submitBtn = document.getElementById("submitBtn");
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
 
     const result = document.getElementById("result");
     const detail = document.getElementById("detail");
@@ -130,7 +154,7 @@
       }
     }
 
-    function resetCalculationResult() {
+   function resetCalculationResult() {
       calculatedAvgPer10 = null;
       calculatedTotalWeight = null;
       calculatedBatches = null;
@@ -138,11 +162,74 @@
       detail.textContent = "";
     }
 
+    function validateMainInputs() {
+      const tanggal = dateInput.value.trim();
+      const namaPeternak = farmerNameInput.value.trim();
+      const namaBakul = buyerNameInput.value.trim();
+      const license = licenseInput.value.trim();
+      const daerah = daerahInput.value;
+      const totalAyam = parseInt(totalPieces.value, 10);
+
+      if (!tanggal || !namaPeternak || !namaBakul || !license || !daerah) {
+        alert("Lengkapi semua data: tanggal, nama peternak, nama bakul, license, dan daerah.");
+        return null;
+      }
+
+      if (weights.length === 0) {
+        alert("Tambahkan data berat terlebih dahulu.");
+        return null;
+      }
+
+      if (Number.isNaN(totalAyam) || totalAyam <= 0) {
+        alert("Masukkan total ayam yang valid.");
+        return null;
+      }
+
+      if (totalAyam % 10 !== 0) {
+        alert("Total ayam harus kelipatan 10.");
+        return null;
+      }
+
+      if (calculatedAvgPer10 === null || calculatedTotalWeight === null) {
+        alert("Klik Calculate dulu sebelum lanjut.");
+        return null;
+      }
+
+      return {
+        tanggal,
+        namaPeternak,
+        namaBakul,
+        license,
+        daerah,
+        totalAyam
+      };
+    }
+
+    function fillPdfContent(data) {
+      document.getElementById("pdfDate").textContent = data.tanggal;
+      document.getElementById("pdfFarmer").textContent = data.namaPeternak;
+      document.getElementById("pdfBuyer").textContent = data.namaBakul;
+      document.getElementById("pdfLicense").textContent = data.license;
+      document.getElementById("pdfDaerah").textContent = data.daerah;
+      document.getElementById("pdfAvg").textContent = `${calculatedAvgPer10.toFixed(2)} kg`;
+      document.getElementById("pdfTotalAyam").textContent = data.totalAyam;
+      document.getElementById("pdfTotalBerat").textContent = `${calculatedTotalWeight.toFixed(2)} kg`;
+
+      const pdfWeightsList = document.getElementById("pdfWeightsList");
+      pdfWeightsList.innerHTML = "";
+
+      for (let i = 0; i < weights.length; i++) {
+        const li = document.createElement("li");
+        li.textContent = `${weights[i].toFixed(1)} kg`;
+        pdfWeightsList.appendChild(li);
+      }
+    }
+
     addWeightBtn.addEventListener("click", () => {
       const val = parseFloat(weightInput.value);
 
       if (Number.isNaN(val) || val <= 0) {
-        alert("Masukkan berat yang valid (contoh 16.8).");
+        alert("Masukkan berat yang valid, contoh 16.8.");
         return;
       }
 
@@ -154,6 +241,7 @@
 
     clearBtn.addEventListener("click", () => {
       weights.length = 0;
+      weightInput.value = "";
       renderWeights();
       resetCalculationResult();
     });
@@ -162,12 +250,12 @@
       const pieces = parseInt(totalPieces.value, 10);
 
       if (weights.length === 0) {
-        alert("Tambahkan minimal 1 data timbangan (per 10 ekor).");
+        alert("Tambahkan minimal 1 data timbangan.");
         return;
       }
 
       if (Number.isNaN(pieces) || pieces <= 0) {
-        alert("Masukkan total ekor yang valid (contoh: 300).");
+        alert("Masukkan total ekor yang valid, contoh 300.");
         return;
       }
 
@@ -191,47 +279,18 @@
     });
 
     submitBtn.addEventListener("click", async () => {
-      const tanggal = dateInput.value.trim();
-      const namaPeternak = farmerNameInput.value.trim();
-      const namaBakul = buyerNameInput.value.trim();
-      const license = licenseInput.value.trim();
-      const daerah = daerahInput.value;
-      const totalAyam = parseInt(totalPieces.value, 10);
-
-      if (!tanggal || !namaPeternak || !namaBakul || !license || !daerah) {
-        alert("Lengkapi semua data: tanggal, nama peternak, nama bakul, license, dan daerah.");
-        return;
-      }
-
-      if (weights.length === 0) {
-        alert("Tambahkan data berat terlebih dahulu.");
-        return;
-      }
-
-      if (Number.isNaN(totalAyam) || totalAyam <= 0) {
-        alert("Masukkan total ayam yang valid.");
-        return;
-      }
-
-      if (totalAyam % 10 !== 0) {
-        alert("Total ayam harus kelipatan 10.");
-        return;
-      }
-
-      if (calculatedAvgPer10 === null || calculatedTotalWeight === null) {
-        alert("Klik Calculate dulu sebelum submit.");
-        return;
-      }
+      const validData = validateMainInputs();
+      if (!validData) return;
 
       const data = {
-        tanggal: tanggal,
-        namaPeternak: namaPeternak,
-        namaBakul: namaBakul,
-        license: license,
-        daerah: daerah,
+        tanggal: validData.tanggal,
+        namaPeternak: validData.namaPeternak,
+        namaBakul: validData.namaBakul,
+        license: validData.license,
+        daerah: validData.daerah,
         beratList: weights.join(", "),
         rataRata: calculatedAvgPer10.toFixed(2),
-        totalAyam: totalAyam,
+        totalAyam: validData.totalAyam,
         totalBerat: calculatedTotalWeight.toFixed(2)
       };
 
@@ -247,30 +306,24 @@
           body: JSON.stringify(data)
         });
 
-        const resultText = await response.text();
-        console.log("Response:", resultText);
-
+        await response.text();
         alert("Data berhasil disimpan ke Google Sheet!");
 
-        // reset form
-        dateInput.value = "";
-        farmerNameInput.value = "";
-        buyerNameInput.value = "";
-        licenseInput.value = "";
-        daerahInput.value = "";
-        totalPieces.value = "";
-        weightInput.value = "";
-        weights.length = 0;
-        renderWeights();
-        resetCalculationResult();
-
       } catch (error) {
-        console.error("Error:", error);
+        console.error(error);
         alert("Gagal submit data. Cek Web App URL atau deploy Apps Script lagi.");
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Submit Data";
       }
+    });
+
+    downloadPdfBtn.addEventListener("click", () => {
+      const validData = validateMainInputs();
+      if (!validData) return;
+
+      fillPdfContent(validData);
+      window.print();
     });
 
     renderWeights();
