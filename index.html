@@ -273,9 +273,7 @@
       calculatedBatches = pieces / 10;
       calculatedTotalWeight = calculatedBatches * calculatedAvgPer10;
 
-      result.textContent = `Total berat ≈ ${calculatedTotalWeight.toFixed(2)} kg`;
-      result.textContent =
-        `Rata-rata per 10 ekor = ${calculatedAvgPer10.toFixed(2)} kg | Jumlah batch (10 ekor) = ${calculatedBatches}`;
+      result.textContent = `Total berat ≈ ${calculatedTotalWeight.toFixed(2)} kg`|`Rata-rata per 10 ekor = ${calculatedAvgPer10.toFixed(2)} kg | Jumlah batch (10 ekor) = ${calculatedBatches}`;
     });
 
     submitBtn.addEventListener("click", async () => {
