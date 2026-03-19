@@ -110,7 +110,7 @@
   </div>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbyJ7J-T6AOI6AEb2uPVpGccu1EUz56Br5zpdQieBcc323kDfOlTYasy-lZpSuGQGtbC/exec";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxlZxyYjOohiPRmnEJSY14vyY4ym90LutPIj-5WoM3N0TUa5EU5iE3VZvwC2qP2WtK_/exec";
 
     const weights = [];
     let calculatedAvgPer10 = null;
@@ -321,6 +321,18 @@
    downloadPdfBtn.addEventListener("click", () => {
   const validData = validateMainInputs();
   if (!validData) return;
+
+  fetch("https://script.google.com/macros/s/AKfycbxlZxyYjOohiPRmnEJSY14vyY4ym90LutPIj-5WoM3N0TUa5EU5iE3VZvwC2qP2WtK_/exec", {
+  method: "POST",
+  body: JSON.stringify({
+    type: "download",
+    tanggal: validData.tanggal,
+    namaPeternak: validData.namaPeternak,
+    namaBakul: validData.namaBakul,
+    license: validData.license,
+    daerah: validData.daerah
+  })
+});
 
   let weightItems = "";
   for (let i = 0; i < weights.length; i++) {
