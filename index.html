@@ -322,6 +322,14 @@
   const validData = validateMainInputs();
   if (!validData) return;
 
+  // buka window dulu supaya tidak dianggap popup liar
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+
+  if (!printWindow) {
+    alert("Popup diblokir browser. Allow pop-ups untuk site ini dulu.");
+    return;
+  }
+
   try {
     const response = await fetch(scriptURL, {
       method: "POST",
@@ -338,8 +346,8 @@
       })
     });
 
-    const result = await response.text();
-    console.log("Download status update:", result);
+    const resultText = await response.text();
+    console.log("Download status update:", resultText);
   } catch (error) {
     console.error("Gagal update status download:", error);
   }
@@ -408,7 +416,6 @@
     </html>
   `;
 
-  const printWindow = window.open("", "_blank", "width=900,height=700");
   printWindow.document.open();
   printWindow.document.write(reportHtml);
   printWindow.document.close();
