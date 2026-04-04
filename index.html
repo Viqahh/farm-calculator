@@ -308,10 +308,11 @@
       "Content-Type": "text/plain;charset=utf-8"
     },
     body: JSON.stringify({
-      type: "download",
-      submissionKey: submissionKey,
-      downloadStatus: "Sudah Download"
-    })
+  type: "download",
+  submissionKey: submissionKey,
+  daerah: validData.daerah,  // ← TAMBAH INI!
+  downloadStatus: "Sudah Download"
+})
   });
 
   const resultText = await response.text();
