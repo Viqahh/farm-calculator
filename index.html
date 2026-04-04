@@ -302,24 +302,23 @@
       }
 
       try {
-        const response = await fetch(scriptURL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-          },
-          body: JSON.stringify({
-            type: "download",
-            submissionKey: submissionKey,
-            downloadStatus: "Sudah Download"
-          })
-        });
+  const response = await fetch(scriptURL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    },
+    body: JSON.stringify({
+      type: "download",
+      submissionKey: submissionKey,
+      downloadStatus: "Sudah Download"
+    })
+  });
 
-       const resultText = await response.text();
-      console.log("Download status update:", resultText);
-      alert("Download API response: " + resultText);
-      } catch (error) {
-        console.error("Gagal update status download:", error);
-      }
+  const resultText = await response.text();
+  console.log("Download status update:", resultText);
+} catch (error) {
+  console.error("Gagal update status download:", error);
+}
 
       let weightItems = "";
       for (let i = 0; i < weights.length; i++) {
