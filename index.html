@@ -298,7 +298,7 @@
               <option value="Maros">Maros</option>
               <option value="Takalar">Takalar</option>
               <option value="Sengkang">Sengkang</option>
-              <option value="Mamasa">Masamba</option>
+              <option value="Masamba">Masamba</option>
             </select>
           </div>
           <div class="field">
@@ -322,7 +322,7 @@
         <span class="step">2</span>
         <div>
           <h2>Data Timbangan</h2>
-          <p class="muted">Per 10 ekor wajib minimal 1 data. Per ekor boleh dikosongkan.</p>
+          <p class="muted">Per 10 ekor wajib minimal 1 data. Per ekor boleh dikosongkan, maksimal 9 data.</p>
         </div>
       </div>
       <div class="panel-body">
@@ -508,6 +508,22 @@
       submissionKey = null;
     }
 
+    function clearFullForm() {
+      dateInput.value = "";
+      farmerNameInput.value = "";
+      buyerNameInput.value = "";
+      licenseInput.value = "";
+      daerahInput.value = "";
+      totalPieces.value = "";
+      weights.length = 0;
+      pieceWeights.length = 0;
+      weightInput.value = "";
+      pieceWeightInput.value = "";
+      renderWeights();
+      resetCalculationResult();
+      dateInput.focus();
+    }
+
     function validateMainInputs() {
       const tanggal = dateInput.value.trim();
       const namaPeternak = farmerNameInput.value.trim();
@@ -686,7 +702,8 @@
         await response.text();
         submissionKey = submitKey;
 
-        alert("Data berhasil disimpan ke Google Sheet!");
+        alert("Data berhasil disimpan ke Google Sheet! Form sudah dikosongkan untuk user berikutnya.");
+        clearFullForm();
       } catch (error) {
         console.error(error);
         alert("Gagal submit data. Cek Web App URL atau deploy Apps Script lagi.");
