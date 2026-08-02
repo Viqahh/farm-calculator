@@ -113,6 +113,91 @@
       line-height: 1.45;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
+    .login-screen {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .login-card {
+      width: min(920px, 100%);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .login-head {
+      margin-bottom: 18px;
+    }
+
+    .login-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .login-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: #fbfcfa;
+    }
+
+    .login-panel .field {
+      margin-top: 12px;
+    }
+
+    .login-panel button {
+      width: 100%;
+      margin-top: 14px;
+    }
+
+    .error {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: var(--radius);
+      color: var(--danger);
+      background: #fff0ed;
+      font-weight: 700;
+    }
+
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .session-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .session-pill {
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--accent-dark);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .small-btn {
+      min-height: 36px;
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+
     .panel {
       background: var(--surface);
       border: 1px solid var(--line);
@@ -261,19 +346,98 @@
       }
 
       .grid,
+      .login-grid,
       .lists,
       .summary,
       .entry-row {
         grid-template-columns: 1fr;
       }
+
+      .app-header {
+        display: block;
+      }
+
+      .session-box {
+        justify-content: flex-start;
+        margin-top: 12px;
+      }
     }
   </style>
 </head>
 <body>
-  <main>
-    <header>
-      <h1>Farm Weight Calculator</h1>
-      <p class="muted">Isi data panen, masukkan sampel timbang per 10 ekor, lalu tambahkan timbang per ekor 1-9 jika ada sisa atau sampel tambahan.</p>
+  <section id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-head">
+        <h1>Kalkulator Ternak</h1>
+        <p class="muted">Masuk sesuai daerah untuk lanjut ke kalkulator.</p>
+      </div>
+
+      <div class="login-panel">
+        <h2>Login Daerah</h2>
+        <div class="field">
+          <label for="loginDaerah">Daerah</label>
+          <select id="loginDaerah">
+            <option value="">-- Pilih Daerah --</option>
+            <option value="Maros">Maros</option>
+            <option value="Takalar">Takalar</option>
+            <option value="Sengkang">Sengkang</option>
+            <option value="Kendari">Kendari</option>
+            <option value="Masamba">Masamba</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="areaPassword">Password</label>
+          <input id="areaPassword" type="password" autocomplete="current-password" placeholder="Password daerah" />
+        </div>
+        <button id="areaLoginBtn" class="primary" type="button">Masuk</button>
+      </div>
+
+      <p id="loginError" class="error" hidden></p>
+
+      <div class="btn-row">
+        <button id="openAdminBtn" type="button">Admin</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="adminScreen" class="login-screen" hidden>
+    <div class="login-card">
+      <div class="login-head">
+        <h1>Admin Page</h1>
+        <p class="muted">Masuk dengan Admin ID dan password.</p>
+      </div>
+
+      <div class="login-panel">
+        <h2>Login Admin</h2>
+        <div class="field">
+          <label for="adminId">Admin ID</label>
+          <input id="adminId" type="text" autocomplete="username" placeholder="Admin ID" />
+        </div>
+        <div class="field">
+          <label for="adminPassword">Admin Password</label>
+          <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Admin password" />
+        </div>
+        <button id="adminLoginBtn" class="primary" type="button">Masuk Admin</button>
+      </div>
+
+      <p id="adminError" class="error" hidden></p>
+
+      <div class="btn-row">
+        <button id="backToLoginBtn" type="button">Kembali</button>
+      </div>
+    </div>
+  </section>
+
+  <main id="appShell" hidden>
+    <header class="app-header">
+      <div>
+        <h1>Farm Weight Calculator</h1>
+        <p class="muted">Isi data panen, masukkan sampel timbang per 10 ekor, lalu tambahkan timbang per ekor 1-9 jika ada sisa atau sampel tambahan.</p>
+      </div>
+      <div class="session-box">
+        <span id="sessionLabel" class="session-pill"></span>
+        <button id="logoutBtn" class="small-btn" type="button">Logout</button>
+      </div>
     </header>
 
     <section class="panel">
@@ -396,7 +560,8 @@
         </div>
 
         <div class="btn-row">
-          <button id="submitBtn" type="button">Submit & Download PDF</button>        
+          <button id="submitBtn" type="button">Submit & Download PDF</button>
+          <button id="downloadPdfBtn" type="button">Download PDF</button>
         </div>
       </div>
     </section>
@@ -404,6 +569,17 @@
 
   <script>
     const scriptURL = "https://script.google.com/macros/s/AKfycbwQ-rFJcDmuzLMZd2OfAv1aiAF3rI99B4F2y_AUrXPJqhk_UG66O8aQeLgPlPihVvEVXQ/exec";
+    const areaPasswords = {
+      Maros: "Maros010",
+      Takalar: "Takalar020",
+      Sengkang: "Sengkang030",
+      Kendari: "Kendari040",
+      Masamba: "Masamba050"
+    };
+    const adminCredential = {
+      id: "PTS100",
+      password: "170304"
+    };
 
     const weights = [];
     const pieceWeights = [];
@@ -416,6 +592,23 @@
     let calculatedSamplePieces = null;
 
     let submissionKey = null;
+    let currentSession = null;
+
+    const loginScreen = document.getElementById("loginScreen");
+    const adminScreen = document.getElementById("adminScreen");
+    const appShell = document.getElementById("appShell");
+    const loginDaerah = document.getElementById("loginDaerah");
+    const areaPassword = document.getElementById("areaPassword");
+    const areaLoginBtn = document.getElementById("areaLoginBtn");
+    const openAdminBtn = document.getElementById("openAdminBtn");
+    const adminId = document.getElementById("adminId");
+    const adminPassword = document.getElementById("adminPassword");
+    const adminLoginBtn = document.getElementById("adminLoginBtn");
+    const backToLoginBtn = document.getElementById("backToLoginBtn");
+    const loginError = document.getElementById("loginError");
+    const adminError = document.getElementById("adminError");
+    const sessionLabel = document.getElementById("sessionLabel");
+    const logoutBtn = document.getElementById("logoutBtn");
 
     const weightInput = document.getElementById("weightInput");
     const addWeightBtn = document.getElementById("addWeightBtn");
@@ -447,6 +640,79 @@
 
     function formatKg(value, digits = 2) {
       return `${value.toFixed(digits)} kg`;
+    }
+
+    function showLoginError(message) {
+      loginError.textContent = message;
+      loginError.hidden = false;
+    }
+
+    function showAdminError(message) {
+      adminError.textContent = message;
+      adminError.hidden = false;
+    }
+
+    function clearLoginError() {
+      loginError.textContent = "";
+      loginError.hidden = true;
+      adminError.textContent = "";
+      adminError.hidden = true;
+    }
+
+    function applyDaerahAccess() {
+      if (!currentSession) return;
+
+      if (currentSession.role === "area") {
+        daerahInput.value = currentSession.daerah;
+        daerahInput.disabled = true;
+        sessionLabel.textContent = `Daerah: ${currentSession.daerah}`;
+        return;
+      }
+
+      daerahInput.value = "";
+      daerahInput.disabled = false;
+      sessionLabel.textContent = "Admin";
+    }
+
+    function openApp(session) {
+      currentSession = session;
+      loginScreen.hidden = true;
+      adminScreen.hidden = true;
+      appShell.hidden = false;
+      clearFullForm();
+    }
+
+    function openAdminPage() {
+      clearLoginError();
+      loginScreen.hidden = true;
+      adminScreen.hidden = false;
+      appShell.hidden = true;
+      adminId.focus();
+    }
+
+    function openAreaLoginPage() {
+      clearLoginError();
+      loginScreen.hidden = false;
+      adminScreen.hidden = true;
+      appShell.hidden = true;
+      adminId.value = "";
+      adminPassword.value = "";
+      loginDaerah.focus();
+    }
+
+    function logout() {
+      currentSession = null;
+      loginScreen.hidden = false;
+      adminScreen.hidden = true;
+      appShell.hidden = true;
+      loginDaerah.value = "";
+      areaPassword.value = "";
+      adminId.value = "";
+      adminPassword.value = "";
+      daerahInput.disabled = false;
+      clearLoginError();
+      clearFullForm();
+      loginDaerah.focus();
     }
 
     function sumList(list) {
@@ -553,6 +819,7 @@
       pieceWeightInput.value = "";
       renderWeights();
       resetCalculationResult();
+      applyDaerahAccess();
       dateInput.focus();
     }
 
@@ -580,6 +847,12 @@
 
       if (calculatedCombinedAvgPerPiece === null || calculatedTotalWeight === null) {
         alert("Kalkulasi belum siap. Cek lagi data timbangan.");
+        return null;
+      }
+
+      if (!currentSession) {
+        alert("Sesi login belum aktif. Login ulang dulu.");
+        logout();
         return null;
       }
 
@@ -749,6 +1022,49 @@
       }
     }
 
+    areaLoginBtn.addEventListener("click", () => {
+      const daerah = loginDaerah.value;
+      const password = areaPassword.value;
+
+      clearLoginError();
+
+      if (!daerah) {
+        showLoginError("Pilih daerah dulu.");
+        return;
+      }
+
+      if (areaPasswords[daerah] !== password) {
+        showLoginError("Password daerah salah.");
+        return;
+      }
+
+      openApp({ role: "area", daerah, password });
+    });
+
+    openAdminBtn.addEventListener("click", openAdminPage);
+    backToLoginBtn.addEventListener("click", openAreaLoginPage);
+
+    adminLoginBtn.addEventListener("click", () => {
+      clearLoginError();
+
+      if (adminId.value.trim() !== adminCredential.id || adminPassword.value !== adminCredential.password) {
+        showAdminError("Admin ID atau password salah.");
+        return;
+      }
+
+      openApp({ role: "admin", adminId: adminCredential.id, password: adminCredential.password });
+    });
+
+    areaPassword.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") areaLoginBtn.click();
+    });
+
+    adminPassword.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") adminLoginBtn.click();
+    });
+
+    logoutBtn.addEventListener("click", logout);
+
     addWeightBtn.addEventListener("click", addPer10Weight);
     addPieceWeightBtn.addEventListener("click", addPerPieceWeight);
 
@@ -794,6 +1110,10 @@
         namaBakul: validData.namaBakul,
         license: validData.license,
         daerah: validData.daerah,
+        authRole: currentSession.role,
+        authDaerah: currentSession.daerah || "",
+        authId: currentSession.adminId || "",
+        authPassword: currentSession.password || "",
         beratList: weights.join(", "),
         beratPer10List: weights.join(", "),
         beratPieceList: pieceWeights.join(", "),
@@ -820,7 +1140,19 @@
           body: JSON.stringify(data)
         });
 
-        await response.text();
+        const resultText = await response.text();
+        let saveResult = {};
+
+        try {
+          saveResult = JSON.parse(resultText);
+        } catch (parseError) {
+          saveResult = { status: "success" };
+        }
+
+        if (saveResult.status && saveResult.status !== "success") {
+          throw new Error(saveResult.message || "Submit gagal.");
+        }
+
         submissionKey = submitKey;
 
         if (printWindow) {
@@ -841,7 +1173,7 @@
       }
     });
 
-    downloadPdfBtn.addEventListener("click", async () => {
+    downloadPdfBtn.addEventListener("click", () => {
       const validData = validateMainInputs();
       if (!validData) return;
 
