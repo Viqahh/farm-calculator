@@ -396,7 +396,7 @@
         </div>
 
         <div class="btn-row">
-          <button id="submitBtn" type="button">Submit & Download PDF</button>
+          <button id="submitBtn" type="button">Submit & Download PDF</button>        
         </div>
       </div>
     </section>
@@ -781,9 +781,7 @@
 
       const printWindow = window.open("", "_blank", "width=900,height=700");
       if (printWindow) {
-        printWindow.document.open();
-        printWindow.document.write("<p style=\"font-family: Arial, sans-serif; padding: 24px;\">Menyiapkan PDF...</p>");
-        printWindow.document.close();
+        writeReportToWindow(printWindow, validData);
       }
 
       const submitKey = `${validData.tanggal}|${validData.namaPeternak}|${validData.namaBakul}|${validData.license}|${Date.now()}`;
@@ -807,7 +805,7 @@
         totalSampleEkor: calculatedSamplePieces,
         totalAyam: validData.totalAyam,
         totalBerat: calculatedTotalWeight.toFixed(2),
-        downloadStatus: "Belum"
+        downloadStatus: printWindow ? "Sudah Download" : "Belum"
       };
 
       try {
@@ -826,9 +824,7 @@
         submissionKey = submitKey;
 
         if (printWindow) {
-          await updateDownloadStatus(validData);
-          writeReportToWindow(printWindow, validData);
-          alert("Data berhasil disimpan. PDF sudah dibuka, pilih Save/Download PDF di HP. Form sudah dikosongkan untuk user berikutnya.");
+          alert("PDF sudah dibuka dan data berhasil disimpan. Form sudah dikosongkan untuk user berikutnya.");
           clearFullForm();
         } else {
           alert("Data berhasil disimpan, tapi PDF diblokir browser. Allow pop-ups dulu, lalu klik Download PDF sebelum lanjut user berikutnya.");
@@ -861,8 +857,8 @@
         return;
       }
 
-      await updateDownloadStatus(validData);
       writeReportToWindow(printWindow, validData);
+      updateDownloadStatus(validData);
     });
 
     renderWeights();
